@@ -252,22 +252,22 @@ impl Server {
         let mut pool = Pool::new(num_threads);
         let mut incoming = listener.incoming();
 
-        loop {
-            // Incoming is an endless iterator, so it's okay to unwrap on it.
-            let stream = incoming.next().unwrap();
-            let stream = stream.expect("Error handling TCP stream.");
+        pool.scoped(|scope| {
+            loop {
+                // Incoming is an endless iterator, so it's okay to unwrap on it.
+                let stream = incoming.next().unwrap();
+                let stream = stream.expect("Error handling TCP stream.");
 
-            stream
-                .set_read_timeout(Some(Duration::from_millis(READ_TIMEOUT_MS)))
-                .expect("FATAL: Couldn't set read timeout on socket");
+                stream
+                    .set_read_timeout(Some(Duration::from_millis(READ_TIMEOUT_MS)))
+                    .expect("FATAL: Couldn't set read timeout on socket");
 
-            pool.scoped(|scope| {
                 scope.execute(|| {
                     self.handle_connection(stream)
                         .expect("Error handling connection.");
                 });
-            });
-        }
+            }
+        })
     }
 
     /// Sets the proper directory for serving static files.

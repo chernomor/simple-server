@@ -263,8 +263,13 @@ impl Server {
                     .expect("FATAL: Couldn't set read timeout on socket");
 
                 scope.execute(|| {
-                    self.handle_connection(stream)
-                        .expect("Error handling connection.");
+                    match self.handle_connection(stream) {
+                        Ok(()) => (),
+                        Err(Error::Io(ref e)) if e.kind() == std::io::ErrorKind::BrokenPipe => {
+                            error!("Error handling connection: Broken pipe");
+                        },
+                        Err(e) => error!("Error handling connection: {:?}", e),
+                    }
                 });
             }
         })
